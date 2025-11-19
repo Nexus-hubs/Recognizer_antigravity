@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRON Recognizer 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050812;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: #00f3ff;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 0 0 10px #00f3ff;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid #00f3ff;
+            color: #00f3ff;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn:hover {
+            background: rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 15px #00f3ff;
+        }
+
+        .btn.red {
+            border-color: #ff0000;
+            color: #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+        }
+
+        .btn.red:hover {
+            background: rgba(255, 0, 0, 0.3);
+            box-shadow: 0 0 15px #ff0000;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00f3ff;
+            font-size: 24px;
+            transition: opacity 0.5s;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="info">
+        <h1>RECOGNIZER PROTOCOL</h1>
+        <p>DRAG TO ROTATE • SCROLL TO ZOOM</p>
+    </div>
+    <div id="loading">INITIALIZING SYSTEM...</div>
+
+    <div id="controls">
+        <button class="btn red" id="audioBtn">ACTIVATE AUDIO</button>
+        <button class="btn" onclick="window.location.href='index.html'">RETURN TO GRID</button>
+    </div>
+
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Post Processing -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+
+    <script>
+        // --- SCENE SETUP ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050812, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 30, 60);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Don't go below ground
+
+        // --- POST PROCESSING (BLOOM) ---
+        const renderScene = new THREE.RenderPass(scene, camera);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 2.0; // High bloom for neon look
+        bloomPass.radius = 0.5;
+
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- GRID ---
+        const gridHelper = new THREE.GridHelper(2000, 100, 0x00f3ff, 0x0044aa);
+        gridHelper.position.y = -10;
+        scene.add(gridHelper);
+
+        // Moving floor plane for infinite effect
+        const planeGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
+        const planeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x001133,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.1
+        });
+        const floor = new THREE.Mesh(planeGeometry, planeMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -10.1;
+        scene.add(floor);
+
+        // --- RECOGNIZER MODEL ---
+        const recognizerGroup = new THREE.Group();
+        scene.add(recognizerGroup);
+
+        // Materials
+        const hullMaterial = new THREE.MeshStandardMaterial({
+            color: 0x050505,
+            roughness: 0.2,
+            metalness: 0.8
+        });
+
+        const glowMaterial = new THREE.LineBasicMaterial({
+            color: 0xff0000,
+            linewidth: 2
+        });
+
+        function createBoxWithEdges(w, h, d, x, y, z) {
+            const geometry = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geometry, hullMaterial);
+            mesh.position.set(x, y, z);
+
+            const edges = new THREE.EdgesGeometry(geometry);
+            const line = new THREE.LineSegments(edges, glowMaterial);
+            mesh.add(line);
+
+            return mesh;
+        }
+
+        // Legs
+        const legWidth = 8;
+        const legHeight = 40;
+        const legDepth = 12;
+        const legSpacing = 30;
+
+        recognizerGroup.add(createBoxWithEdges(legWidth, legHeight, legDepth, -legSpacing / 2, 10, 0)); // Left Leg
+        recognizerGroup.add(createBoxWithEdges(legWidth, legHeight, legDepth, legSpacing / 2, 10, 0));  // Right Leg
+
+        // Feet
+        const footWidth = 12;
+        const footHeight = 6;
+        const footDepth = 20;
+        recognizerGroup.add(createBoxWithEdges(footWidth, footHeight, footDepth, -legSpacing / 2, -10, 2)); // Left Foot
+        recognizerGroup.add(createBoxWithEdges(footWidth, footHeight, footDepth, legSpacing / 2, -10, 2));  // Right Foot
+
+        // Top Arch
+        const archWidth = legSpacing + legWidth;
+        const archHeight = 8;
+        const archDepth = 16;
+        recognizerGroup.add(createBoxWithEdges(archWidth, archHeight, archDepth, 0, 32, 0));
+
+        // Upper Structure (The "Head")
+        recognizerGroup.add(createBoxWithEdges(20, 6, 20, 0, 39, 0));
+        recognizerGroup.add(createBoxWithEdges(10, 4, 10, 0, 44, 0));
+
+        // Floating Rings/Details
+        const ringGeo = new THREE.TorusGeometry(15, 0.5, 16, 100);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 25;
+        recognizerGroup.add(ring);
+
+        // --- EXPLOSION SYSTEM ---
+        const explosions = [];
+        const particleGeo = new THREE.BufferGeometry();
+        const particleCount = 50;
+        const pPos = new Float32Array(particleCount * 3);
+        const pVel = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount; i++) {
+            pPos[i * 3] = 0; pPos[i * 3 + 1] = 0; pPos[i * 3 + 2] = 0;
+            pVel[i * 3] = (Math.random() - 0.5) * 2;
+            pVel[i * 3 + 1] = (Math.random() - 0.5) * 2;
+            pVel[i * 3 + 2] = (Math.random() - 0.5) * 2;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+
+        function createExplosion(x, y, z, color) {
+            const geometry = particleGeo.clone();
+            const material = new THREE.PointsMaterial({
+                color: color,
+                size: 2,
+                transparent: true,
+                opacity: 1
+            });
+            const points = new THREE.Points(geometry, material);
+            points.position.set(x, y, z);
+
+            // Store velocities for this specific explosion instance
+            points.userData = {
+                velocities: [],
+                age: 0
+            };
+
+            for (let i = 0; i < particleCount; i++) {
+                points.userData.velocities.push({
+                    x: (Math.random() - 0.5) * 1.5,
+                    y: (Math.random() - 0.5) * 1.5,
+                    z: (Math.random() - 0.5) * 1.5
+                });
+            }
+
+            scene.add(points);
+            explosions.push(points);
+        }
+
+        // --- LIGHT CYCLES ---
+        const cyclesGroup = new THREE.Group();
+        scene.add(cyclesGroup);
+
+        function createLightCycle(color, x, z, direction) {
+            const cycleGroup = new THREE.Group();
+            cycleGroup.position.set(x, 0, z);
+
+            // Rotate based on direction
+            if (direction === 'left') cycleGroup.rotation.y = Math.PI;
+            if (direction === 'up') cycleGroup.rotation.y = -Math.PI / 2;
+            if (direction === 'down') cycleGroup.rotation.y = Math.PI / 2;
+
+            const cycleMaterial = new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                roughness: 0.2,
+                metalness: 0.8
+            });
+
+            const glowMat = new THREE.MeshBasicMaterial({ color: color });
+
+            // Body
+            const bodyGeo = new THREE.BoxGeometry(10, 4, 3);
+            const body = new THREE.Mesh(bodyGeo, cycleMaterial);
+            body.position.y = 2;
+            cycleGroup.add(body);
+
+            // Canopy/Window
+            const canopyGeo = new THREE.BoxGeometry(4, 1, 2.5);
+            const canopy = new THREE.Mesh(canopyGeo, glowMat);
+            canopy.position.set(-1, 4.1, 0);
+            cycleGroup.add(canopy);
+
+            // Rear Wheel (Hollow-ish look simulated with torus)
+            const rearWheelGeo = new THREE.TorusGeometry(2.5, 0.8, 8, 16);
+            const rearWheel = new THREE.Mesh(rearWheelGeo, glowMat);
+            rearWheel.position.set(-3, 2.5, 0);
+            cycleGroup.add(rearWheel);
+
+            // Front Wheel
+            const frontWheelGeo = new THREE.TorusGeometry(1.5, 0.5, 8, 16);
+            const frontWheel = new THREE.Mesh(frontWheelGeo, glowMat);
+            frontWheel.position.set(4, 1.5, 0);
+            cycleGroup.add(frontWheel);
+
+            // Trail
+            const trailGeo = new THREE.PlaneGeometry(100, 4);
+            const trailMat = new THREE.MeshBasicMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            const trail = new THREE.Mesh(trailGeo, trailMat);
+            trail.position.set(-55, 2, 0); // Behind the cycle
+            cycleGroup.add(trail);
+
+            // Store velocity for animation
+            cycleGroup.userData = {
+                velocity: new THREE.Vector3(direction === 'right' ? 1 : -1, 0, 0),
+                speed: 1.2,
+                startPos: { x: x, z: z },
+                color: color
+            };
+
+            cyclesGroup.add(cycleGroup);
+            return cycleGroup;
+        }
+
+        // Blue cycle (Safe path)
+        const cycle1 = createLightCycle(0x00f3ff, -100, 20, 'right');
+        // Orange cycle (Safe path)
+        const cycle2 = createLightCycle(0xff6b35, 100, -20, 'left');
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        const redLight = new THREE.PointLight(0xff0000, 2, 100);
+        redLight.position.set(0, 20, 20);
+        scene.add(redLight);
+
+        const blueLight = new THREE.PointLight(0x00f3ff, 1, 100);
+        blueLight.position.set(50, 50, 50);
+        scene.add(blueLight);
+
+        // --- AUDIO SYSTEM ---
+        let audioCtx;
+        let sequencerInterval;
+        let isPlaying = false;
+        const audioBtn = document.getElementById('audioBtn');
+
+        audioBtn.addEventListener('click', () => {
+            if (!isPlaying) {
+                initAudio();
+                audioBtn.textContent = "DEACTIVATE AUDIO";
+                audioBtn.classList.add('active');
+            } else {
+                stopAudio();
+                audioBtn.textContent = "ACTIVATE AUDIO";
+                audioBtn.classList.remove('active');
+            }
+            isPlaying = !isPlaying;
+        });
+
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Bass Drone
+            const droneOsc = audioCtx.createOscillator();
+            const droneGain = audioCtx.createGain();
+            droneOsc.type = 'sawtooth';
+            droneOsc.frequency.value = 55; // Low A
+            droneGain.gain.value = 0.1;
+
+            // Filter for drone
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 200;
+
+            droneOsc.connect(filter);
+            filter.connect(droneGain);
+            droneGain.connect(audioCtx.destination);
+            droneOsc.start();
+
+            // LFO for filter
+            const lfo = audioCtx.createOscillator();
+            lfo.frequency.value = 0.5;
+            const lfoGain = audioCtx.createGain();
+            lfoGain.gain.value = 100;
+            lfo.connect(lfoGain);
+            lfoGain.connect(filter.frequency);
+            lfo.start();
+
+            // Sequencer
+            let step = 0;
+            const tempo = 130; // BPM
+            const stepTime = (60 / tempo) / 4 * 1000;
+
+            sequencerInterval = setInterval(() => {
+                playStep(step, audioCtx);
+                step = (step + 1) % 16;
+            }, stepTime);
+        }
+
+        function stopAudio() {
+            if (audioCtx) {
+                audioCtx.close();
+                clearInterval(sequencerInterval);
+            }
+        }
+
+        function playStep(step, ctx) {
+            const t = ctx.currentTime;
+
+            // Kick (Every 4 steps: 0, 4, 8, 12)
+            if (step % 4 === 0) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.setValueAtTime(150, t);
+                osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.5);
+                gain.gain.setValueAtTime(1, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.5);
+            }
+
+            // Hi-hat (Every off-beat: 2, 6, 10, 14)
+            if (step % 4 === 2) {
+                const bufferSize = ctx.sampleRate * 0.05;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = ctx.createGain();
+
+                // Bandpass for metallic sound
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.value = 5000;
+
+                gain.gain.setValueAtTime(0.3, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+                noise.start(t);
+            }
+
+            // Synth Arp (Random pentatonic notes)
+            if (step % 2 === 0) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+
+                // Simple A minor pentatonic frequencies
+                const notes = [220, 261.63, 293.66, 329.63, 392.00, 440];
+                const freq = notes[Math.floor(Math.random() * notes.length)];
+
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(0.1, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.1);
+            }
+        }
+
+        // --- ANIMATION LOOP ---
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            // Float animation
+            recognizerGroup.position.y = Math.sin(time) * 2;
+
+            // Ring pulse
+            const scale = 1 + Math.sin(time * 2) * 0.1;
+            ring.scale.set(scale, scale, scale);
+
+            // Grid movement
+            gridHelper.position.z = (time * 10) % 100;
+            floor.position.z = (time * 10) % 100;
+
+            // Cycle Animation & Collision
+            cyclesGroup.children.forEach(cycle => {
+                cycle.position.x += cycle.userData.velocity.x * cycle.userData.speed;
+
+                // Collision Detection (Simple AABB for Legs)
+                // Left Leg: x[-19, -11], z[-6, 6]
+                // Right Leg: x[11, 19], z[-6, 6]
+                const cx = cycle.position.x;
+                const cz = cycle.position.z;
+
+                // Check collision with legs
+                const hitLeft = (cx > -20 && cx < -10 && cz > -7 && cz < 7);
+                const hitRight = (cx > 10 && cx < 20 && cz > -7 && cz < 7);
+
+                if (hitLeft || hitRight) {
+                    createExplosion(cx, 2, cz, cycle.userData.color);
+                    // Reset cycle
+                    cycle.position.x = cycle.userData.startPos.x;
+                    cycle.position.z = cycle.userData.startPos.z;
+                }
+
+                // Loop if out of bounds
+                if (cycle.position.x > 200) cycle.position.x = -200;
+                if (cycle.position.x < -200) cycle.position.x = 200;
+            });
+
+            // Update Explosions
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const exp = explosions[i];
+                const positions = exp.geometry.attributes.position.array;
+
+                for (let j = 0; j < particleCount; j++) {
+                    positions[j * 3] += exp.userData.velocities[j].x;
+                    positions[j * 3 + 1] += exp.userData.velocities[j].y;
+                    positions[j * 3 + 2] += exp.userData.velocities[j].z;
+                }
+                exp.geometry.attributes.position.needsUpdate = true;
+
+                exp.userData.age++;
+                exp.material.opacity -= 0.02;
+
+                if (exp.userData.age > 50) {
+                    scene.remove(exp);
+                    explosions.splice(i, 1);
+                }
+            }
+
+            controls.update();
+            composer.render();
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start
+        document.getElementById('loading').style.opacity = 0;
+        animate();
+    </script>
+</body>
+
+</html>
