@@ -1,10 +1,5 @@
-// ===== GAME CONFIGURATION =====
-// Assets loaded from global scope (assets.js)
-
-const cycleImg = new Image();
-cycleImg.src = CYCLE_SPRITE;
-const tankImg = new Image();
-tankImg.src = TANK_SPRITE;
+// ===== LUXURIOUS LIGHT CYCLES - TRON 1982 EDITION =====
+// Enhanced with classic vector graphics, smooth movement, and modern controls
 
 const CONFIG = {
     gridSize: 40,
@@ -12,6 +7,8 @@ const CONFIG = {
     baseSpeed: 100,
     speedIncrease: 0.93,
     speedIncreaseInterval: 8000,
+    interpolationSpeed: 0.15,
+    trailFadeLength: 100,
     difficulties: {
         easy: { aiSpeed: 1.2, aiSmartness: 0.3 },
         medium: { aiSpeed: 1.0, aiSmartness: 0.6 },
@@ -19,13 +16,199 @@ const CONFIG = {
     }
 };
 
-// ===== GAME STATE =====
+// ===== CLASSIC TRON LIGHT CYCLE RENDERER =====
+class LightCycleRenderer {
+    constructor(ctx) {
+        this.ctx = ctx;
+    }
+
+    // Draw classic 1982 TRON-style light cycle
+    drawCycle(x, y, direction, color, isPlayer = true) {
+        const ctx = this.ctx;
+        const size = CONFIG.cellSize * 1.8;
+
+        // Direction rotation
+        let rotation = 0;
+        switch (direction) {
+            case 'right': rotation = 0; break;
+            case 'down': rotation = Math.PI / 2; break;
+            case 'left': rotation = Math.PI; break;
+            case 'up': rotation = -Math.PI / 2; break;
+        }
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+
+        // Enhanced glow effect
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = color;
+
+        // Classic TRON cycle design - angular, sleek vector style
+        const cycleLength = size * 0.8;
+        const cycleHeight = size * 0.35;
+        const wheelRadius = size * 0.18;
+
+        // Main body - angular design like 1982 movie
+        ctx.fillStyle = color;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+
+        // Body shape (elongated angular)
+        ctx.beginPath();
+        // Front point
+        ctx.moveTo(cycleLength * 0.5, 0);
+        // Top front
+        ctx.lineTo(cycleLength * 0.2, -cycleHeight * 0.6);
+        // Top back canopy
+        ctx.lineTo(-cycleLength * 0.1, -cycleHeight * 0.8);
+        // Back top
+        ctx.lineTo(-cycleLength * 0.4, -cycleHeight * 0.5);
+        // Back wheel area
+        ctx.lineTo(-cycleLength * 0.5, -cycleHeight * 0.3);
+        ctx.lineTo(-cycleLength * 0.5, cycleHeight * 0.3);
+        // Bottom back
+        ctx.lineTo(-cycleLength * 0.4, cycleHeight * 0.5);
+        // Bottom front
+        ctx.lineTo(cycleLength * 0.2, cycleHeight * 0.3);
+        ctx.closePath();
+
+        // Fill with semi-transparent color
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.stroke();
+
+        // Canopy/cockpit highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        ctx.moveTo(cycleLength * 0.15, -cycleHeight * 0.5);
+        ctx.lineTo(-cycleLength * 0.05, -cycleHeight * 0.65);
+        ctx.lineTo(-cycleLength * 0.1, -cycleHeight * 0.4);
+        ctx.lineTo(cycleLength * 0.1, -cycleHeight * 0.3);
+        ctx.closePath();
+        ctx.fill();
+
+        // Front wheel (larger, more prominent)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cycleLength * 0.35, 0, wheelRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner wheel glow
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(cycleLength * 0.35, 0, wheelRadius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Rear wheel
+        ctx.beginPath();
+        ctx.arc(-cycleLength * 0.4, 0, wheelRadius * 1.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner rear wheel glow
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(-cycleLength * 0.4, 0, wheelRadius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Engine glow line
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-cycleLength * 0.3, 0);
+        ctx.lineTo(cycleLength * 0.2, 0);
+        ctx.stroke();
+
+        // Additional detail lines for that vector graphics feel
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.7;
+
+        // Top detail line
+        ctx.beginPath();
+        ctx.moveTo(cycleLength * 0.3, -cycleHeight * 0.2);
+        ctx.lineTo(-cycleLength * 0.2, -cycleHeight * 0.3);
+        ctx.stroke();
+
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // Draw enhanced trail with gradient fade
+    drawTrail(trail, color, isPlayer = true) {
+        if (trail.length < 2) return;
+
+        const ctx = this.ctx;
+
+        // Main trail with glow
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = color;
+        ctx.lineCap = 'square';
+        ctx.lineJoin = 'miter';
+
+        // Draw trail segments with gradient intensity
+        for (let i = 1; i < trail.length; i++) {
+            const pos = trail[i];
+            const prevPos = trail[i - 1];
+
+            // Calculate opacity based on position in trail
+            const fadeStart = Math.max(0, trail.length - CONFIG.trailFadeLength);
+            let alpha = 1;
+            if (i < fadeStart) {
+                alpha = 0.3 + (i / fadeStart) * 0.3;
+            }
+
+            const x = pos.x * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const y = pos.y * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const px = prevPos.x * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const py = prevPos.y * CONFIG.cellSize + CONFIG.cellSize / 2;
+
+            // Outer glow
+            ctx.globalAlpha = alpha * 0.3;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = CONFIG.cellSize * 0.9;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            // Core trail
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = CONFIG.cellSize * 0.6;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            // Bright center line
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = CONFIG.cellSize * 0.15;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+    }
+}
+
+// ===== MAIN GAME CLASS =====
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.cycleRenderer = new LightCycleRenderer(this.ctx);
+
         this.difficulty = 'medium';
-        this.gameState = 'menu'; // menu, countdown, playing, paused, gameover
+        this.gameState = 'menu';
         this.score = 0;
         this.highScore = parseInt(localStorage.getItem('lightCycleHighScore')) || 0;
         this.speed = CONFIG.baseSpeed;
@@ -34,22 +217,54 @@ class Game {
         this.survivalTime = 0;
         this.maxSpeed = 1.0;
 
+        // Smooth interpolation
+        this.playerVisual = { x: 0, y: 0 };
+        this.aiVisual = { x: 0, y: 0 };
+
+        // Touch controls
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.swipeThreshold = 30;
+
+        // Settings
+        this.settings = {
+            soundEnabled: true,
+            musicEnabled: true,
+            scanlines: true,
+            particleIntensity: 1
+        };
+
         this.setupCanvas();
         this.setupEventListeners();
+        this.setupTouchControls();
         this.updateHighScore();
+        this.handleResize();
     }
 
     setupCanvas() {
+        this.handleResize();
+        window.addEventListener('resize', () => this.handleResize());
+    }
+
+    handleResize() {
+        const container = document.getElementById('gameScreen');
+        const maxSize = Math.min(window.innerWidth * 0.95, window.innerHeight * 0.75, 800);
         const size = CONFIG.gridSize * CONFIG.cellSize;
+
         this.canvas.width = size;
         this.canvas.height = size;
+
+        // Scale canvas visually for responsiveness
+        const scale = maxSize / size;
+        this.canvas.style.width = `${size * scale}px`;
+        this.canvas.style.height = `${size * scale}px`;
     }
 
     setupEventListeners() {
         // Difficulty selection
         document.querySelectorAll('.difficulty-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                soundSystem.playClick();
+                if (this.settings.soundEnabled) soundSystem.playClick();
                 document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.difficulty = btn.dataset.difficulty;
@@ -59,33 +274,42 @@ class Game {
         // Start button
         document.getElementById('startBtn').addEventListener('click', () => {
             soundSystem.init();
-            soundSystem.playClick();
+            if (this.settings.soundEnabled) soundSystem.playClick();
             this.startGame();
         });
 
         // Resume button
         document.getElementById('resumeBtn').addEventListener('click', () => {
-            soundSystem.playClick();
+            if (this.settings.soundEnabled) soundSystem.playClick();
             this.resumeGame();
         });
 
         // Quit button
         document.getElementById('quitBtn').addEventListener('click', () => {
-            soundSystem.playClick();
+            if (this.settings.soundEnabled) soundSystem.playClick();
             this.quitToMenu();
         });
 
         // Play again button
         document.getElementById('playAgainBtn').addEventListener('click', () => {
-            soundSystem.playClick();
+            if (this.settings.soundEnabled) soundSystem.playClick();
             this.startGame();
         });
 
         // Menu button
         document.getElementById('menuBtn').addEventListener('click', () => {
-            soundSystem.playClick();
+            if (this.settings.soundEnabled) soundSystem.playClick();
             this.showScreen('startScreen');
         });
+
+        // Settings button (if exists)
+        const settingsBtn = document.getElementById('settingsBtn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                if (this.settings.soundEnabled) soundSystem.playClick();
+                this.showScreen('settingsScreen');
+            });
+        }
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
@@ -97,6 +321,62 @@ class Game {
                 this.resumeGame();
             }
         });
+    }
+
+    setupTouchControls() {
+        // Touch/swipe controls for mobile
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            this.touchStartX = touch.clientX;
+            this.touchStartY = touch.clientY;
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        this.canvas.addEventListener('touchend', (e) => {
+            if (this.gameState !== 'playing') return;
+
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            const deltaX = touch.clientX - this.touchStartX;
+            const deltaY = touch.clientY - this.touchStartY;
+
+            if (Math.abs(deltaX) > this.swipeThreshold || Math.abs(deltaY) > this.swipeThreshold) {
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    // Horizontal swipe
+                    this.handleDirectionChange(deltaX > 0 ? 'right' : 'left');
+                } else {
+                    // Vertical swipe
+                    this.handleDirectionChange(deltaY > 0 ? 'down' : 'up');
+                }
+            }
+        }, { passive: false });
+
+        // Virtual D-pad controls
+        const dpadBtns = document.querySelectorAll('.dpad-btn');
+        dpadBtns.forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (this.gameState === 'playing') {
+                    const direction = btn.dataset.direction;
+                    this.handleDirectionChange(direction);
+                    btn.classList.add('active');
+                }
+            });
+            btn.addEventListener('touchend', () => {
+                btn.classList.remove('active');
+            });
+        });
+    }
+
+    handleDirectionChange(newDir) {
+        if (newDir !== this.getOppositeDirection(this.player.direction) && newDir !== this.player.direction) {
+            this.player.direction = newDir;
+            if (this.settings.soundEnabled) soundSystem.playTurn();
+        }
     }
 
     startGame() {
@@ -111,24 +391,32 @@ class Game {
         this.grid = Array(CONFIG.gridSize).fill(null).map(() => Array(CONFIG.gridSize).fill(0));
 
         // Initialize player
+        const playerStartX = Math.floor(CONFIG.gridSize * 0.25);
+        const playerStartY = Math.floor(CONFIG.gridSize / 2);
         this.player = {
-            x: Math.floor(CONFIG.gridSize * 0.25),
-            y: Math.floor(CONFIG.gridSize / 2),
+            x: playerStartX,
+            y: playerStartY,
             direction: 'right',
             color: '#00f3ff',
-            trail: [],
+            brightColor: '#5dfdff',
+            trail: [{ x: playerStartX, y: playerStartY }],
             alive: true
         };
+        this.playerVisual = { x: playerStartX, y: playerStartY };
 
         // Initialize AI
+        const aiStartX = Math.floor(CONFIG.gridSize * 0.75);
+        const aiStartY = Math.floor(CONFIG.gridSize / 2);
         this.ai = {
-            x: Math.floor(CONFIG.gridSize * 0.75),
-            y: Math.floor(CONFIG.gridSize / 2),
+            x: aiStartX,
+            y: aiStartY,
             direction: 'left',
             color: '#ff6b35',
-            trail: [],
+            brightColor: '#ff8c61',
+            trail: [{ x: aiStartX, y: aiStartY }],
             alive: true
         };
+        this.aiVisual = { x: aiStartX, y: aiStartY };
 
         // Mark starting positions
         this.grid[this.player.y][this.player.x] = 1;
@@ -147,28 +435,29 @@ class Game {
             if (count > 0) {
                 countdownEl.textContent = count;
                 countdownEl.style.display = 'block';
-                soundSystem.playCountdown(false);
+                if (this.settings.soundEnabled) soundSystem.playCountdown(false);
                 count--;
                 setTimeout(showCount, 1000);
             } else {
                 countdownEl.textContent = 'GO!';
-                soundSystem.playCountdown(true);
+                if (this.settings.soundEnabled) soundSystem.playCountdown(true);
                 setTimeout(() => {
                     countdownEl.style.display = 'none';
                     this.gameState = 'playing';
-                    soundSystem.playEngineHum();
+                    if (this.settings.soundEnabled) soundSystem.playEngineHum();
                     this.startGameLoop();
                 }, 500);
             }
         };
 
         showCount();
-        soundSystem.startMusic();
+        if (this.settings.musicEnabled) soundSystem.startMusic();
     }
 
     startGameLoop() {
         this.lastUpdate = Date.now();
         this.lastSpeedIncrease = Date.now();
+        this.lastRender = performance.now();
         this.gameLoop();
     }
 
@@ -189,12 +478,25 @@ class Game {
             this.speedMultiplier = CONFIG.baseSpeed / this.speed;
             this.maxSpeed = Math.max(this.maxSpeed, this.speedMultiplier);
             this.lastSpeedIncrease = now;
-            soundSystem.playSpeedUp();
+            if (this.settings.soundEnabled) soundSystem.playSpeedUp();
             document.getElementById('speed').textContent = this.speedMultiplier.toFixed(1) + 'x';
         }
 
+        // Smooth interpolation for visual positions
+        this.updateVisualPositions();
+
         this.render();
         requestAnimationFrame(() => this.gameLoop());
+    }
+
+    updateVisualPositions() {
+        // Smooth interpolation for player
+        this.playerVisual.x += (this.player.x - this.playerVisual.x) * CONFIG.interpolationSpeed;
+        this.playerVisual.y += (this.player.y - this.playerVisual.y) * CONFIG.interpolationSpeed;
+
+        // Smooth interpolation for AI
+        this.aiVisual.x += (this.ai.x - this.aiVisual.x) * CONFIG.interpolationSpeed;
+        this.aiVisual.y += (this.ai.y - this.aiVisual.y) * CONFIG.interpolationSpeed;
     }
 
     update() {
@@ -217,6 +519,7 @@ class Game {
             p.life--;
             p.x += p.vx;
             p.y += p.vy;
+            p.vy += 0.1; // gravity
             p.alpha = p.life / p.maxLife;
             return p.life > 0;
         });
@@ -351,10 +654,7 @@ class Game {
             return;
         }
 
-        if (newDir !== this.getOppositeDirection(this.player.direction) && newDir !== this.player.direction) {
-            this.player.direction = newDir;
-            soundSystem.playTurn();
-        }
+        this.handleDirectionChange(newDir);
     }
 
     checkCollisions() {
@@ -370,16 +670,18 @@ class Game {
         const playerWon = this.player.alive && !this.ai.alive;
 
         if (playerWon) {
-            soundSystem.playVictory();
+            if (this.settings.soundEnabled) soundSystem.playVictory();
         } else {
-            soundSystem.playCrash();
+            if (this.settings.soundEnabled) soundSystem.playCrash();
         }
 
         // Create explosion particles
         const crashEntity = !this.player.alive ? this.player : this.ai;
-        this.createExplosion(crashEntity.x * CONFIG.cellSize + CONFIG.cellSize / 2,
+        this.createExplosion(
+            crashEntity.x * CONFIG.cellSize + CONFIG.cellSize / 2,
             crashEntity.y * CONFIG.cellSize + CONFIG.cellSize / 2,
-            crashEntity.color);
+            crashEntity.color
+        );
 
         // Update high score
         if (this.score > this.highScore) {
@@ -403,18 +705,35 @@ class Game {
     }
 
     createExplosion(x, y, color) {
-        for (let i = 0; i < 50; i++) {
+        const particleCount = 80 * this.settings.particleIntensity;
+        for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 3 + 1;
+            const speed = Math.random() * 5 + 2;
             this.particles.push({
                 x, y,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
+                vy: Math.sin(angle) * speed - 2,
                 color,
-                life: 60,
+                life: 80 + Math.random() * 40,
+                maxLife: 120,
+                alpha: 1,
+                size: Math.random() * 4 + 2
+            });
+        }
+
+        // Add spark particles
+        for (let i = 0; i < 20; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 8 + 4;
+            this.particles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 3,
+                color: '#ffffff',
+                life: 40 + Math.random() * 20,
                 maxLife: 60,
                 alpha: 1,
-                size: Math.random() * 3 + 1
+                size: Math.random() * 2 + 1
             });
         }
     }
@@ -430,7 +749,7 @@ class Game {
     resumeGame() {
         if (this.gameState === 'paused') {
             this.gameState = 'playing';
-            soundSystem.playEngineHum();
+            if (this.settings.soundEnabled) soundSystem.playEngineHum();
             this.showScreen('gameScreen');
             this.lastUpdate = Date.now();
             this.gameLoop();
@@ -455,128 +774,106 @@ class Game {
 
     render() {
         const ctx = this.ctx;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
 
-        // Clear canvas
-        ctx.fillStyle = '#0a0e27';
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // Clear canvas with dark background
+        ctx.fillStyle = '#0a0e17';
+        ctx.fillRect(0, 0, width, height);
 
-        // Draw grid
-        ctx.strokeStyle = 'rgba(0, 243, 255, 0.1)';
+        // Draw grid with perspective feel
+        this.drawGrid();
+
+        // Draw trails with enhanced effects
+        this.cycleRenderer.drawTrail(this.player.trail, this.player.color, true);
+        this.cycleRenderer.drawTrail(this.ai.trail, this.ai.color, false);
+
+        // Draw cycles at interpolated positions
+        if (this.player.alive) {
+            const px = this.playerVisual.x * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const py = this.playerVisual.y * CONFIG.cellSize + CONFIG.cellSize / 2;
+            this.cycleRenderer.drawCycle(px, py, this.player.direction, this.player.color, true);
+        }
+
+        if (this.ai.alive) {
+            const ax = this.aiVisual.x * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const ay = this.aiVisual.y * CONFIG.cellSize + CONFIG.cellSize / 2;
+            this.cycleRenderer.drawCycle(ax, ay, this.ai.direction, this.ai.color, false);
+        }
+
+        // Draw particles
+        this.particles.forEach(p => {
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+
+        // Scanline effect for retro feel
+        if (this.settings.scanlines) {
+            this.drawScanlines();
+        }
+
+        // Vignette effect
+        this.drawVignette();
+    }
+
+    drawGrid() {
+        const ctx = this.ctx;
+        const cellSize = CONFIG.cellSize;
+        const gridSize = CONFIG.gridSize;
+
+        // Grid lines with subtle glow
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.08)';
         ctx.lineWidth = 1;
-        for (let i = 0; i <= CONFIG.gridSize; i++) {
-            const pos = i * CONFIG.cellSize;
+
+        for (let i = 0; i <= gridSize; i++) {
+            const pos = i * cellSize;
+
+            // Vertical lines
             ctx.beginPath();
             ctx.moveTo(pos, 0);
             ctx.lineTo(pos, this.canvas.height);
             ctx.stroke();
+
+            // Horizontal lines
             ctx.beginPath();
             ctx.moveTo(0, pos);
             ctx.lineTo(this.canvas.width, pos);
             ctx.stroke();
         }
 
-        // Draw trails with glow
-        this.drawTrail(this.player);
-        this.drawTrail(this.ai);
-
-        // Draw cycles
-        this.drawCycle(this.player);
-        this.drawCycle(this.ai);
-
-        // Draw particles
-        this.particles.forEach(p => {
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = p.alpha;
-            ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-        });
-        ctx.globalAlpha = 1;
+        // Border glow
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    drawTrail(entity) {
+    drawScanlines() {
         const ctx = this.ctx;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
 
-        if (entity.trail.length < 2) return;
-
-        // Glow effect
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = entity.color;
-
-        ctx.strokeStyle = entity.color;
-        ctx.lineWidth = CONFIG.cellSize * 0.6;
-        ctx.lineCap = 'square';
-        ctx.lineJoin = 'miter';
-
-        ctx.beginPath();
-        entity.trail.forEach((pos, i) => {
-            const x = pos.x * CONFIG.cellSize + CONFIG.cellSize / 2;
-            const y = pos.y * CONFIG.cellSize + CONFIG.cellSize / 2;
-
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        ctx.stroke();
-
-        ctx.shadowBlur = 0;
+        for (let y = 0; y < this.canvas.height; y += 4) {
+            ctx.fillRect(0, y, this.canvas.width, 2);
+        }
     }
 
-    drawCycle(entity) {
-        if (!entity.alive) return;
-
+    drawVignette() {
         const ctx = this.ctx;
-        const x = entity.x * CONFIG.cellSize + CONFIG.cellSize / 2;
-        const y = entity.y * CONFIG.cellSize + CONFIG.cellSize / 2;
-        const size = CONFIG.cellSize * 1.5;
+        const gradient = ctx.createRadialGradient(
+            this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.3,
+            this.canvas.width / 2, this.canvas.height / 2, this.canvas.height * 0.8
+        );
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
 
-        // Rotation based on direction
-        let rotation = 0;
-        switch (entity.direction) {
-            case 'right': rotation = 0; break;
-            case 'down': rotation = Math.PI / 2; break;
-            case 'left': rotation = Math.PI; break;
-            case 'up': rotation = -Math.PI / 2; break;
-        }
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(rotation);
-
-        // Enhanced glow effect
-        ctx.shadowBlur = 30;
-        ctx.shadowColor = entity.color;
-
-        // Draw futuristic cycle shape if sprite fails or for better look
-        if (!tankImg.complete || tankImg.naturalHeight === 0) {
-            // Fallback: draw a detailed cycle shape
-            ctx.fillStyle = entity.color;
-            ctx.strokeStyle = entity.color;
-            ctx.lineWidth = 2;
-
-            // Body
-            ctx.fillRect(-size * 0.3, -size * 0.2, size * 0.6, size * 0.4);
-            // Front
-            ctx.beginPath();
-            ctx.moveTo(size * 0.3, 0);
-            ctx.lineTo(size * 0.5, -size * 0.15);
-            ctx.lineTo(size * 0.5, size * 0.15);
-            ctx.closePath();
-            ctx.fill();
-            // Glow line
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(-size * 0.3, -size * 0.05, size * 0.6, size * 0.1);
-        } else {
-            // Draw sprite with color tint
-            ctx.drawImage(tankImg, -size / 2, -size / 2, size, size);
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.fillStyle = entity.color;
-            ctx.globalAlpha = 0.4;
-            ctx.fillRect(-size / 2, -size / 2, size, size);
-        }
-
-        ctx.restore();
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 }
 

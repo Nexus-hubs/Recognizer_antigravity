@@ -3,10 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="description"
-        content="Modern Light Cycle Game - Experience the thrill of TRON-inspired light cycle racing with stunning visuals and electronic sounds">
-    <title>Light Cycles 2.0</title>
+        content="Luxurious Light Cycle Game - Experience classic 1982 TRON-inspired light cycle racing with stunning vector graphics and modern controls">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>LIGHT CYCLES - TRON Legacy Edition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -17,100 +19,168 @@
 
 <body>
     <div class="background-grid"></div>
+    <div class="ambient-glow"></div>
 
     <!-- Start Screen -->
     <div id="startScreen" class="screen active">
         <div class="title-container">
+            <div class="title-decoration top"></div>
             <h1 class="game-title">
                 <span class="title-light">LIGHT</span>
                 <span class="title-cycle">CYCLES</span>
-                <span class="title-version">2.0</span>
+                <span class="title-version">LEGACY</span>
             </h1>
+            <div class="title-decoration bottom"></div>
             <div class="title-glow"></div>
         </div>
 
         <div class="menu-container">
-            <button class="menu-btn primary" id="startBtn">
-                <span class="btn-text">START GAME</span>
+            <button class="menu-btn primary glow-pulse" id="startBtn">
+                <span class="btn-icon">&#9654;</span>
+                <span class="btn-text">INITIALIZE</span>
                 <span class="btn-glow"></span>
             </button>
 
             <div class="difficulty-selector">
-                <label class="difficulty-label">DIFFICULTY</label>
+                <label class="difficulty-label">PROGRAM LEVEL</label>
                 <div class="difficulty-buttons">
-                    <button class="difficulty-btn" data-difficulty="easy">EASY</button>
-                    <button class="difficulty-btn active" data-difficulty="medium">MEDIUM</button>
-                    <button class="difficulty-btn" data-difficulty="hard">HARD</button>
+                    <button class="difficulty-btn" data-difficulty="easy">
+                        <span class="diff-name">BASIC</span>
+                        <span class="diff-desc">Learning Mode</span>
+                    </button>
+                    <button class="difficulty-btn active" data-difficulty="medium">
+                        <span class="diff-name">STANDARD</span>
+                        <span class="diff-desc">Balanced</span>
+                    </button>
+                    <button class="difficulty-btn" data-difficulty="hard">
+                        <span class="diff-name">MASTER</span>
+                        <span class="diff-desc">Expert</span>
+                    </button>
                 </div>
             </div>
 
             <div class="controls-info">
-                <h3>CONTROLS</h3>
+                <h3>CONTROL INTERFACE</h3>
                 <div class="control-grid">
                     <div class="control-item">
-                        <span class="key">W / ↑</span>
-                        <span class="action">UP</span>
+                        <span class="key">W / <span class="arrow">&#8593;</span></span>
+                        <span class="action">NORTH</span>
                     </div>
                     <div class="control-item">
-                        <span class="key">S / ↓</span>
-                        <span class="action">DOWN</span>
+                        <span class="key">S / <span class="arrow">&#8595;</span></span>
+                        <span class="action">SOUTH</span>
                     </div>
                     <div class="control-item">
-                        <span class="key">A / ←</span>
-                        <span class="action">LEFT</span>
+                        <span class="key">A / <span class="arrow">&#8592;</span></span>
+                        <span class="action">WEST</span>
                     </div>
                     <div class="control-item">
-                        <span class="key">D / →</span>
-                        <span class="action">RIGHT</span>
+                        <span class="key">D / <span class="arrow">&#8594;</span></span>
+                        <span class="action">EAST</span>
                     </div>
-                    <div class="control-item">
+                    <div class="control-item full-width">
                         <span class="key">ESC / P</span>
-                        <span class="action">PAUSE</span>
+                        <span class="action">SUSPEND</span>
                     </div>
                 </div>
+                <p class="mobile-hint">Mobile: Swipe or use D-Pad</p>
             </div>
 
-            <button class="menu-btn secondary" onclick="window.location.href='recognizer.html'"
-                style="margin-top: 1rem; border-color: #ff0000; color: #ff0000;">
-                <span class="btn-text">3D RECOGNIZER</span>
-                <span class="btn-glow"
-                    style="background: radial-gradient(circle, rgba(255, 0, 0, 0.3), transparent);"></span>
-            </button>
+            <div class="menu-buttons-row">
+                <button class="menu-btn secondary recognizer-btn" onclick="window.location.href='recognizer.html'">
+                    <span class="btn-text">3D RECOGNIZER</span>
+                    <span class="btn-glow"></span>
+                </button>
+            </div>
+        </div>
+
+        <div class="version-info">
+            <span>BUILD 2.0.82</span>
+            <span class="separator">|</span>
+            <span>ENCOM SYSTEMS</span>
         </div>
     </div>
 
     <!-- Game Screen -->
     <div id="gameScreen" class="screen">
         <div class="hud">
-            <div class="hud-item">
-                <span class="hud-label">SCORE</span>
-                <span class="hud-value" id="score">0</span>
+            <div class="hud-left">
+                <div class="hud-item score-display">
+                    <span class="hud-label">SCORE</span>
+                    <span class="hud-value" id="score">0</span>
+                </div>
             </div>
-            <div class="hud-item">
-                <span class="hud-label">HIGH SCORE</span>
-                <span class="hud-value" id="highScore">0</span>
+            <div class="hud-center">
+                <div class="hud-item speed-display">
+                    <span class="hud-label">VELOCITY</span>
+                    <span class="hud-value" id="speed">1.0x</span>
+                    <div class="speed-bar">
+                        <div class="speed-fill" id="speedBar"></div>
+                    </div>
+                </div>
             </div>
-            <div class="hud-item">
-                <span class="hud-label">SPEED</span>
-                <span class="hud-value" id="speed">1.0x</span>
+            <div class="hud-right">
+                <div class="hud-item highscore-display">
+                    <span class="hud-label">RECORD</span>
+                    <span class="hud-value" id="highScore">0</span>
+                </div>
             </div>
         </div>
 
-        <canvas id="gameCanvas"></canvas>
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+
+            <!-- Player indicators -->
+            <div class="player-indicator player-you">
+                <span class="indicator-dot cyan"></span>
+                <span>YOU</span>
+            </div>
+            <div class="player-indicator player-ai">
+                <span class="indicator-dot orange"></span>
+                <span>AI</span>
+            </div>
+        </div>
 
         <div class="countdown" id="countdown"></div>
+
+        <!-- Mobile D-Pad Controls -->
+        <div class="mobile-controls" id="mobileControls">
+            <div class="dpad">
+                <button class="dpad-btn up" data-direction="up">
+                    <span class="dpad-arrow">&#8593;</span>
+                </button>
+                <button class="dpad-btn left" data-direction="left">
+                    <span class="dpad-arrow">&#8592;</span>
+                </button>
+                <button class="dpad-btn center">
+                    <span class="dpad-logo"></span>
+                </button>
+                <button class="dpad-btn right" data-direction="right">
+                    <span class="dpad-arrow">&#8594;</span>
+                </button>
+                <button class="dpad-btn down" data-direction="down">
+                    <span class="dpad-arrow">&#8595;</span>
+                </button>
+            </div>
+            <button class="pause-btn-mobile" id="pauseBtnMobile">
+                <span>&#10074;&#10074;</span>
+            </button>
+        </div>
     </div>
 
     <!-- Pause Screen -->
     <div id="pauseScreen" class="screen overlay">
         <div class="pause-container">
-            <h2 class="pause-title">PAUSED</h2>
-            <button class="menu-btn" id="resumeBtn">
+            <div class="pause-icon">&#10074;&#10074;</div>
+            <h2 class="pause-title">SUSPENDED</h2>
+            <p class="pause-subtitle">Program execution halted</p>
+            <button class="menu-btn primary" id="resumeBtn">
+                <span class="btn-icon">&#9654;</span>
                 <span class="btn-text">RESUME</span>
                 <span class="btn-glow"></span>
             </button>
             <button class="menu-btn secondary" id="quitBtn">
-                <span class="btn-text">QUIT TO MENU</span>
+                <span class="btn-text">TERMINATE</span>
                 <span class="btn-glow"></span>
             </button>
         </div>
@@ -119,35 +189,60 @@
     <!-- Game Over Screen -->
     <div id="gameOverScreen" class="screen overlay">
         <div class="gameover-container">
-            <h2 class="gameover-title" id="gameOverTitle">GAME OVER</h2>
+            <div class="gameover-icon" id="gameOverIcon">&#9888;</div>
+            <h2 class="gameover-title" id="gameOverTitle">DEREZZED</h2>
+
             <div class="final-score">
                 <span class="final-score-label">FINAL SCORE</span>
                 <span class="final-score-value" id="finalScore">0</span>
             </div>
+
             <div class="stats-grid">
                 <div class="stat-item">
-                    <span class="stat-label">SURVIVAL TIME</span>
+                    <div class="stat-icon">&#9201;</div>
+                    <span class="stat-label">RUNTIME</span>
                     <span class="stat-value" id="survivalTime">0s</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">MAX SPEED</span>
+                    <div class="stat-icon">&#9889;</div>
+                    <span class="stat-label">PEAK VELOCITY</span>
                     <span class="stat-value" id="maxSpeed">1.0x</span>
                 </div>
             </div>
-            <button class="menu-btn primary" id="playAgainBtn">
-                <span class="btn-text">PLAY AGAIN</span>
-                <span class="btn-glow"></span>
-            </button>
-            <button class="menu-btn secondary" id="menuBtn">
-                <span class="btn-text">MAIN MENU</span>
-                <span class="btn-glow"></span>
-            </button>
+
+            <div class="gameover-buttons">
+                <button class="menu-btn primary" id="playAgainBtn">
+                    <span class="btn-icon">&#8635;</span>
+                    <span class="btn-text">REINITIALIZE</span>
+                    <span class="btn-glow"></span>
+                </button>
+                <button class="menu-btn secondary" id="menuBtn">
+                    <span class="btn-text">MAIN GRID</span>
+                    <span class="btn-glow"></span>
+                </button>
+            </div>
         </div>
     </div>
 
     <script src="assets.js"></script>
     <script src="sounds.js"></script>
     <script src="game.js"></script>
+
+    <script>
+        // Mobile pause button handler
+        document.getElementById('pauseBtnMobile')?.addEventListener('click', () => {
+            if (game && game.gameState === 'playing') {
+                game.pauseGame();
+            }
+        });
+
+        // Detect mobile and show controls
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                        || window.innerWidth <= 768;
+        if (isMobile) {
+            document.body.classList.add('mobile-device');
+        }
+    </script>
 </body>
 
 </html>
