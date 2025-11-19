@@ -1,4 +1,27 @@
-// assets.js
-// Sprite URLs for the advanced Light Cycle game
-const CYCLE_SPRITE = "file:///C:/Users/Korov/.gemini/antigravity/brain/5e16479d-5ca0-444f-829a-6694faa4ca14/uploaded_image_0_1763507027169.gif";
-const TANK_SPRITE = "file:///C:/Users/Korov/.gemini/antigravity/brain/5e16479d-5ca0-444f-829a-6694faa4ca14/uploaded_image_1_1763507027169.png";
+// ===== ASSET CONFIGURATION =====
+// Light Cycles uses procedural vector graphics - no external sprites needed
+// This file is kept for potential future asset loading
+
+const CYCLE_SPRITE = '';
+const TANK_SPRITE = '';
+
+// Asset preloader for future use
+class AssetLoader {
+    constructor() {
+        this.assets = new Map();
+        this.loaded = false;
+    }
+
+    async loadAll() {
+        // Currently using procedural graphics
+        // Future: Load sprite sheets, sounds, etc.
+        this.loaded = true;
+        return Promise.resolve();
+    }
+
+    get(name) {
+        return this.assets.get(name);
+    }
+}
+
+const assetLoader = new AssetLoader();
